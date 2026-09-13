@@ -37,8 +37,64 @@ const shareIconSvg = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height=
 const commentIconModal = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom; margin-right: 6px;"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>';
 
 // ==========================================
-// 3. 系統初始化
+// 3. 安全網路請求與系統初始化
 // ==========================================
+/**
+ * 安全的 JSON 請求封裝
+ * 1. 支援逾時中斷 (AbortController)
+ * 2. 攔截 Google 伺服器回傳的 HTML 錯誤頁（<!DOCTYPE 或 <html 開頭）
+ * 3. 遇到暫時性錯誤時自動重試 (Auto-Retry)
+ */
+async function safeFetchJson(url, options = {}, retries = 2, delayMs = 1500, timeoutMs = 15000) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    
+    try {
+      const fetchOptions = {
+        ...options,
+        signal: controller.signal
+      };
+      
+      const res = await fetch(url, fetchOptions);
+      clearTimeout(timeoutId);
+      
+      const rawText = await res.text();
+      const trimmed = rawText.trim();
+      
+      // 檢查是否為 HTML 錯誤頁 (Google 伺服器維護/逾時/配額限制通常回傳 HTML)
+      if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html') || trimmed.startsWith('<head')) {
+        throw new Error('Google 伺服器暫時忙碌或回傳錯誤頁面 (HTML)');
+      }
+      
+      let json;
+      try {
+        json = JSON.parse(rawText);
+      } catch (e) {
+        throw new Error('資料格式解析失敗: ' + e.message);
+      }
+      
+      return json;
+    } catch (err) {
+      clearTimeout(timeoutId);
+      const isAbort = err.name === 'AbortError';
+      const isLastAttempt = attempt === retries;
+      
+      console.warn(`[API] 請求失敗 (第 ${attempt + 1} 次):`, isAbort ? '連線逾時' : err.message);
+      
+      if (isLastAttempt) {
+        if (isAbort) {
+          throw new Error('連線逾時 (Google 伺服器回應過慢，請稍後重試)');
+        }
+        throw err;
+      }
+      
+      // 等待後重試
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
 window.onload = function() { 
   window.onscroll = function() {
     const btn = document.getElementById('backToTop');
@@ -53,21 +109,29 @@ function loadData() {
   loader.style.display = 'block';
   loader.innerHTML = 'SYSTEM INITIALIZING... 系統讀取中...';
   
-  fetch(`${GAS_URL}?action=getPortfolio`)
-    .then(res => res.json())
+  safeFetchJson(`${GAS_URL}?action=getPortfolio`, {}, 2, 1500, 15000)
     .then(json => {
-      if(json.status === 'success') {
+      if (json.status === 'success') {
         initData(json.data);
       } else {
-        showError(json.message);
+        showError(json.message || '資料庫回傳狀態異常');
       }
     })
-    .catch(err => showError(err));
+    .catch(err => showError(err.message || err));
 }
 
 function showError(err) {
-  document.getElementById('loader').style.display = 'none';
-  alert('資料讀取失敗，請重新整理頁面。錯誤代碼: ' + err);
+  const loader = document.getElementById('loader');
+  loader.style.display = 'block';
+  loader.innerHTML = `
+    <div style="color: var(--neon-pink); line-height: 1.6; padding: 20px 10px;">
+      <p style="font-weight: bold; font-size: 1.1rem; margin-bottom: 8px;">⚠️ 資料讀取失敗</p>
+      <p style="font-size: 0.95rem; color: #ccc; margin-bottom: 14px;">${err}</p>
+      <button onclick="loadData()" style="padding: 8px 20px; background: rgba(0, 243, 255, 0.1); border: 1px solid var(--neon-blue); color: var(--neon-blue); cursor: pointer; border-radius: 4px; font-family: inherit; font-size: 0.95rem; transition: all 0.3s ease;">
+        🔄 重新嘗試連線
+      </button>
+    </div>
+  `;
 }
 
 // ==========================================
@@ -249,11 +313,10 @@ function handleLike(itemId) {
 // ==========================================
 function fetchComments(resourceId) {
   document.getElementById('comments-list').innerHTML = '讀取留言中...';
-  fetch(`${GAS_URL}?action=getComments&resourceId=${resourceId}`)
-    .then(res => res.json())
+  safeFetchJson(`${GAS_URL}?action=getComments&resourceId=${resourceId}`, {}, 1, 1200)
     .then(json => {
       if(json.status === 'success') {
-        currentComments = json.data.reverse();
+        currentComments = (json.data || []).reverse();
         renderedCommentCount = 0;
         document.getElementById('comments-list').innerHTML = '';
         if (currentComments.length === 0) {
@@ -261,7 +324,12 @@ function fetchComments(resourceId) {
         } else {
           renderComments();
         }
+      } else {
+        document.getElementById('comments-list').innerHTML = '讀取留言失敗。';
       }
+    })
+    .catch(() => {
+      document.getElementById('comments-list').innerHTML = '讀取留言失敗（伺服器忙碌），請稍候重試。';
     });
 }
 
@@ -309,12 +377,11 @@ function submitComment() {
 
   const payload = { action: 'addComment', resourceId: item.id, nickname: nick, content: content };
 
-  fetch(GAS_URL, {
+  safeFetchJson(GAS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(payload)
-  })
-  .then(res => res.json())
+  }, 1, 1500)
   .then(json => {
     submitBtn.disabled = false;
     submitBtn.innerText = 'TRANSMIT / 傳送';
@@ -324,13 +391,13 @@ function submitComment() {
       item.commentCount = (item.commentCount || 0) + 1;
       renderModalContent(); 
     } else {
-      alert("傳送失敗");
+      alert("傳送失敗: " + (json.message || "請稍候重試"));
     }
   })
-  .catch(() => {
+  .catch(err => {
     submitBtn.disabled = false;
     submitBtn.innerText = 'TRANSMIT / 傳送';
-    alert("系統錯誤");
+    alert("連線忙碌中，請稍候再試 (" + (err.message || err) + ")");
   });
 }
 
@@ -353,12 +420,11 @@ function subscribeNewsletter() {
 
   const payload = { action: 'addSubscriber', email: email };
 
-  fetch(GAS_URL, {
+  safeFetchJson(GAS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(payload)
-  })
-  .then(res => res.json())
+  }, 1, 1500)
   .then(json => {
     btn.disabled = false;
     btn.innerText = 'SUBSCRIBE';
@@ -372,11 +438,11 @@ function subscribeNewsletter() {
     }
     setTimeout(() => { msg.innerText = ""; }, 5000);
   })
-  .catch(() => {
+  .catch(err => {
     btn.disabled = false;
     btn.innerText = 'SUBSCRIBE';
     msg.style.color = 'var(--neon-pink)';
-    msg.innerText = ">> SYSTEM ERROR";
+    msg.innerText = ">> 連線逾時或伺服器忙碌，請稍候重試";
   });
 }
 
