@@ -1,0 +1,13 @@
+# Local GAS & Node dependencies
+node_modules/
+package-lock.json
+package.json
+.clasp.json
+appsscript.json
+程式碼.js
+NewsletterDialog.html
+Stylesheet.html
+JavaScript.html
+github-app.js
+github-pages.html
+README.md
