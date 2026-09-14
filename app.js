@@ -102,6 +102,8 @@ window.onload = function() {
     else { btn.classList.remove('show'); }
   };
   loadData();
+  checkSubscribeIntent();
+  window.addEventListener('hashchange', checkSubscribeIntent);
 };
 
 function loadData() {
@@ -444,6 +446,33 @@ function subscribeNewsletter() {
     msg.style.color = 'var(--neon-pink)';
     msg.innerText = ">> 連線逾時或伺服器忙碌，請稍候重試";
   });
+}
+
+// 支援社群直接訂閱連結 (#subscribe 或 ?subscribe=true 或 ?action=subscribe)
+function checkSubscribeIntent() {
+  const hash = (window.location.hash || "").toLowerCase();
+  const currentParams = new URLSearchParams(window.location.search);
+  const isSubscribe = hash === '#subscribe' || 
+                      currentParams.get('subscribe') === 'true' || 
+                      currentParams.get('action') === 'subscribe';
+  if (isSubscribe) {
+    setTimeout(() => {
+      const emailInput = document.getElementById('sub-email');
+      const msg = document.getElementById('sub-msg');
+      if (emailInput) {
+        emailInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        emailInput.focus();
+        emailInput.classList.add('sub-highlight');
+        if (msg) {
+          msg.style.color = 'var(--neon-blue)';
+          msg.innerText = ">> 歡迎訂閱！請在此輸入 Email 接收最新作品通知";
+        }
+        setTimeout(() => {
+          emailInput.classList.remove('sub-highlight');
+        }, 3500);
+      }
+    }, 600);
+  }
 }
 
 // ==========================================
