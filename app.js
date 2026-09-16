@@ -109,8 +109,8 @@ window.onload = function() {
 function loadData() {
   const loader = document.getElementById('loader');
   
-  // 🔥 方案 A：Stale-While-Revalidate 快取策略
-  // 先嘗試從 localStorage 讀取快取，秒開畫面
+  // 🚀 三層載入策略：localStorage → data.json → GAS API
+  // 第 1 層：嘗試從 localStorage 讀取快取（回訪使用者秒開）
   const cached = localStorage.getItem('portfolio_cache');
   let hasCachedData = false;
   
@@ -122,25 +122,43 @@ function loadData() {
         hasCachedData = true;
       }
     } catch(e) {
-      localStorage.removeItem('portfolio_cache'); // 快取損壞，清除
+      localStorage.removeItem('portfolio_cache');
     }
   }
   
-  // 若沒有快取，才顯示 loading 動畫
+  // 第 2 層：新使用者沒有 localStorage → 從同源 data.json 快速載入
   if (!hasCachedData) {
     loader.style.display = 'block';
     loader.innerHTML = 'SYSTEM INITIALIZING... 系統讀取中...';
+    
+    fetch('./data.json')
+      .then(res => {
+        if (!res.ok) throw new Error('data.json not found');
+        return res.json();
+      })
+      .then(staticData => {
+        if (Array.isArray(staticData) && staticData.length > 0) {
+          initData(staticData);   // ⚡ 新使用者也秒開！
+          hasCachedData = true;
+          // 同時寫入 localStorage，下次直接從第 1 層讀取
+          try {
+            localStorage.setItem('portfolio_cache', JSON.stringify(staticData));
+          } catch(e) { /* ignore */ }
+        }
+      })
+      .catch(err => {
+        console.warn('[Loader] data.json 載入失敗，等待 GAS API:', err.message);
+      });
   }
   
-  // 背景向 GAS 請求最新資料
+  // 第 3 層：背景向 GAS API 請求最新資料（確保資料是最新的）
   safeFetchJson(`${GAS_URL}?action=getPortfolio`, {}, 2, 1500, 15000)
     .then(json => {
       if (json.status === 'success') {
-        // 寫入快取供下次秒開使用
         try {
           localStorage.setItem('portfolio_cache', JSON.stringify(json.data));
         } catch(e) {
-          console.warn('[Cache] localStorage 寫入失敗（可能容量不足）:', e.message);
+          console.warn('[Cache] localStorage 寫入失敗:', e.message);
         }
         initData(json.data);   // 用最新資料更新畫面
       } else if (!hasCachedData) {
