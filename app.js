@@ -108,18 +108,52 @@ window.onload = function() {
 
 function loadData() {
   const loader = document.getElementById('loader');
-  loader.style.display = 'block';
-  loader.innerHTML = 'SYSTEM INITIALIZING... 系統讀取中...';
   
+  // 🔥 方案 A：Stale-While-Revalidate 快取策略
+  // 先嘗試從 localStorage 讀取快取，秒開畫面
+  const cached = localStorage.getItem('portfolio_cache');
+  let hasCachedData = false;
+  
+  if (cached) {
+    try {
+      const cachedData = JSON.parse(cached);
+      if (Array.isArray(cachedData) && cachedData.length > 0) {
+        initData(cachedData);   // ⚡ 秒開！先顯示上次的資料
+        hasCachedData = true;
+      }
+    } catch(e) {
+      localStorage.removeItem('portfolio_cache'); // 快取損壞，清除
+    }
+  }
+  
+  // 若沒有快取，才顯示 loading 動畫
+  if (!hasCachedData) {
+    loader.style.display = 'block';
+    loader.innerHTML = 'SYSTEM INITIALIZING... 系統讀取中...';
+  }
+  
+  // 背景向 GAS 請求最新資料
   safeFetchJson(`${GAS_URL}?action=getPortfolio`, {}, 2, 1500, 15000)
     .then(json => {
       if (json.status === 'success') {
-        initData(json.data);
-      } else {
+        // 寫入快取供下次秒開使用
+        try {
+          localStorage.setItem('portfolio_cache', JSON.stringify(json.data));
+        } catch(e) {
+          console.warn('[Cache] localStorage 寫入失敗（可能容量不足）:', e.message);
+        }
+        initData(json.data);   // 用最新資料更新畫面
+      } else if (!hasCachedData) {
         showError(json.message || '資料庫回傳狀態異常');
       }
     })
-    .catch(err => showError(err.message || err));
+    .catch(err => {
+      if (!hasCachedData) {
+        showError(err.message || err);
+      } else {
+        console.warn('[API] 背景更新失敗，使用快取資料:', err.message || err);
+      }
+    });
 }
 
 function showError(err) {
