@@ -613,6 +613,23 @@ function openNovelModal(item, targetChapterIndex = null) {
   document.body.style.overflow = 'hidden';
 }
 
+function getCleanChapterTitle(index, rawTitle) {
+  if (!rawTitle) return `第 ${index} 章`;
+  let trimmed = String(rawTitle).trim();
+  // 移除重複的「第 X 章」或「第 X 講/回/節」或數字前綴
+  const chMatch = trimmed.match(/^第\s*\d+\s*[章講回節集話][:：\s]*(.*)$/i);
+  if (chMatch) {
+    const subTitle = chMatch[1].trim();
+    return subTitle ? `第 ${index} 章：${subTitle}` : `第 ${index} 章`;
+  }
+  const numMatch = trimmed.match(/^\d+[_.\s]+(.*)$/);
+  if (numMatch) {
+    const subTitle = numMatch[1].trim();
+    return subTitle ? `第 ${index} 章：${subTitle}` : `第 ${index} 章`;
+  }
+  return `第 ${index} 章：${trimmed}`;
+}
+
 function populateChapterSelectAndTOC(chapters) {
   const select = document.getElementById('novel-chapter-select');
   const tocList = document.getElementById('novel-toc-list');
@@ -625,19 +642,21 @@ function populateChapterSelectAndTOC(chapters) {
   }
 
   chapters.forEach(ch => {
+    const cleanTitle = getCleanChapterTitle(ch.index, ch.title);
+    
     // 下拉選單 option
     const opt = document.createElement('option');
     opt.value = ch.index;
     opt.text = ch.isUnlocked ? 
-      `第 ${ch.index} 章：${ch.title}` : 
-      `第 ${ch.index} 章：${ch.title} 🔒 (${ch.publishDate || '即將解鎖'})`;
+      cleanTitle : 
+      `${cleanTitle} 🔒 (${ch.publishDate ? ch.publishDate.substring(5) : '即將解鎖'})`;
     select.appendChild(opt);
     
     // TOC 卡片
     const tocItem = document.createElement('div');
     tocItem.className = 'novel-toc-item' + (ch.isUnlocked ? '' : ' locked');
     tocItem.innerHTML = `
-      <div class="toc-item-title">第 ${ch.index} 章：${ch.title}</div>
+      <div class="toc-item-title">${escapeHtml(cleanTitle)}</div>
       <span class="toc-item-badge ${ch.isUnlocked ? 'toc-badge-unlocked' : 'toc-badge-locked'}">
         ${ch.isUnlocked ? '閱讀' : ('🔒 ' + (ch.publishDate ? ch.publishDate.substring(5) : '鎖定'))}
       </span>
@@ -686,7 +705,7 @@ function loadChapter(chapterIndex) {
   
   document.getElementById('chapter-num').innerText = `CHAPTER // ${chapter.index}`;
   document.getElementById('chapter-date').innerText = chapter.publishDate ? `發布日期：${chapter.publishDate}` : '';
-  document.getElementById('chapter-title').innerText = chapter.title;
+  document.getElementById('chapter-title').innerText = getCleanChapterTitle(chapter.index, chapter.title);
   
   const contentBox = document.getElementById('chapter-content-box');
   
