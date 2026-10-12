@@ -22,6 +22,12 @@ let currentComments = [];
 let renderedCommentCount = 0;
 const COMMENT_CHUNK_SIZE = 5;
 
+// 小說專用全域變數
+let currentNovel = null;
+let currentChapterIndex = 1;
+let currentReaderTheme = 'reader-theme-dark';
+let currentReaderFontSize = 1.15;
+
 const getModalImageSize = () => window.innerWidth < 768 ? 'w800' : 'w1200';
 
 // ==========================================
@@ -198,7 +204,14 @@ function initData(data) {
   if (requestedId && requestedId !== "") {
     const targetItem = allData.find(x => String(x.id) === String(requestedId));
     if (targetItem) {
-      switchTab(targetItem.type.toLowerCase() === 'apps' ? 'apps' : targetItem.type.toLowerCase() + 's');
+      const typeStr = targetItem.type.toLowerCase();
+      if (typeStr === 'novel') {
+        switchTab('novels');
+        const chParam = urlParams.get('ch');
+        setTimeout(() => openNovelModal(targetItem, chParam ? parseInt(chParam) : null), 500);
+        return;
+      }
+      switchTab(typeStr === 'apps' ? 'apps' : typeStr + 's');
       setTimeout(() => openModal(targetItem), 500);
       return; 
     }
@@ -226,16 +239,19 @@ function updateGallery() {
     if (sortBy === 'liked') return (b.likes || 0) - (a.likes || 0);
     return 0; 
   });
-  const containerId = 'gallery-' + (currentType === 'apps' ? 'apps' : currentType + 's');
+  const containerId = 'gallery-' + (currentType === 'apps' ? 'apps' : (currentType === 'novel' ? 'novels' : currentType + 's'));
   const container = document.getElementById(containerId);
-  container.innerHTML = '';
-  currentRenderedCount = 0;
-  loadMoreItems();
+  if (container) {
+    container.innerHTML = '';
+    currentRenderedCount = 0;
+    loadMoreItems();
+  }
 }
 
 function loadMoreItems() {
-  const containerId = 'gallery-' + (currentType === 'apps' ? 'apps' : currentType + 's');
+  const containerId = 'gallery-' + (currentType === 'apps' ? 'apps' : (currentType === 'novel' ? 'novels' : currentType + 's'));
   const container = document.getElementById(containerId);
+  if (!container) return;
   if (sentinel.parentNode) { sentinel.parentNode.removeChild(sentinel); }
   const nextBatch = currentList.slice(currentRenderedCount, currentRenderedCount + CHUNK_SIZE);
   nextBatch.forEach(item => container.appendChild(createCard(item)));
@@ -250,7 +266,11 @@ function createCard(item) {
     'https://img.youtube.com/vi/' + realId + '/hqdefault.jpg' : 
     'https://drive.google.com/thumbnail?id=' + realId + '&sz=w400';
   
+  const isNovel = item.type.toLowerCase() === 'novel';
+  const badgeHtml = isNovel ? '<div class="novel-card-badge">📖 連載小說</div>' : '';
+
   div.innerHTML = `
+    ${badgeHtml}
     <div class="thumb-wrapper"><img src="${thumbUrl}" loading="lazy"></div>
     <div class="info">
       <div class="card-meta">
@@ -262,19 +282,27 @@ function createCard(item) {
         </div>
       </div>
     </div>`;
-  div.onclick = () => openModal(item);
+  
+  if (isNovel) {
+    div.onclick = () => openNovelModal(item);
+  } else {
+    div.onclick = () => openModal(item);
+  }
   return div;
 }
 
 function switchTab(tabName) {
   document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
   const btns = document.querySelectorAll('.tab-btn');
-  if(tabName === 'images') { btns[0].classList.add('active'); currentType = 'image'; }
-  else if(tabName === 'videos') { btns[1].classList.add('active'); currentType = 'video'; }
-  else if(tabName === 'comics') { btns[2].classList.add('active'); currentType = 'comic'; }
-  else if(tabName === 'apps') { btns[3].classList.add('active'); currentType = 'apps'; }
+  if(tabName === 'images' && btns[0]) { btns[0].classList.add('active'); currentType = 'image'; }
+  else if(tabName === 'videos' && btns[1]) { btns[1].classList.add('active'); currentType = 'video'; }
+  else if(tabName === 'comics' && btns[2]) { btns[2].classList.add('active'); currentType = 'comic'; }
+  else if(tabName === 'apps' && btns[3]) { btns[3].classList.add('active'); currentType = 'apps'; }
+  else if(tabName === 'novels' && btns[4]) { btns[4].classList.add('active'); currentType = 'novel'; }
+  
   document.querySelectorAll('.gallery-section').forEach(sec => sec.classList.remove('active'));
-  document.getElementById('gallery-' + tabName).classList.add('active');
+  const activeSec = document.getElementById('gallery-' + tabName);
+  if (activeSec) activeSec.classList.add('active');
   updateGallery();
 }
 
@@ -546,3 +574,320 @@ function changeSlide(n) {
 function closeModalDirect() { document.getElementById('modal').style.display = 'none'; document.body.style.overflow = ''; }
 function closeModal(e) { if (e.target.id === 'modal') closeModalDirect(); }
 function filterData() { currentKeyword = document.getElementById('searchInput').value.toLowerCase(); updateGallery(); }
+
+// ==========================================
+// 8. 小說專屬閱讀燈箱 (Novel Reader Modal)
+// ==========================================
+function openNovelModal(item, targetChapterIndex = null) {
+  currentNovel = item;
+  
+  // 更新點閱率
+  currentNovel.viewCount = (currentNovel.viewCount || 0) + 1;
+  fetch(`${GAS_URL}?action=updateViewCount&resourceId=${item.id}`).catch(e => console.log(e));
+  
+  document.getElementById('novel-toolbar-title').innerText = item.title;
+  
+  let realId = item.id.includes('@') ? item.id.split('@')[0] : item.id;
+  document.getElementById('novel-cover-img').src = `https://drive.google.com/thumbnail?id=${realId}&sz=${getModalImageSize()}`;
+  document.getElementById('novel-overview-title').innerText = item.title;
+  document.getElementById('novel-overview-desc').innerText = item.desc || "暫無簡介";
+  document.getElementById('novel-overview-tag').innerText = item.tag || '#連載小說';
+  
+  document.getElementById('novel-overview-views').innerHTML = `${eyeIconSvg} 閱讀 ${item.viewCount || 0}`;
+  document.getElementById('novel-overview-likes').innerHTML = `${heartFilledSvg} 按讚 ${item.likes || 0}`;
+  
+  const chapters = item.chapters || [];
+  document.getElementById('novel-overview-chapters-count').innerHTML = `📑 共 ${chapters.length} 章`;
+  
+  // 建立章節下拉選單與 TOC 目錄列表
+  populateChapterSelectAndTOC(chapters);
+  
+  // 若有指定章節，直接進入該章閱讀；否則先顯示目錄概覽
+  if (targetChapterIndex && chapters.some(c => c.index === targetChapterIndex)) {
+    loadChapter(targetChapterIndex);
+  } else {
+    showNovelOverview();
+  }
+  
+  document.getElementById('novel-modal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function populateChapterSelectAndTOC(chapters) {
+  const select = document.getElementById('novel-chapter-select');
+  const tocList = document.getElementById('novel-toc-list');
+  select.innerHTML = '<option value="0">📑 書籍概覽與目錄</option>';
+  tocList.innerHTML = '';
+  
+  if (chapters.length === 0) {
+    tocList.innerHTML = '<div style="color: #888; grid-column: 1 / -1; text-align: center; padding: 20px;">作者目前正準備上架各章節，敬請期待！</div>';
+    return;
+  }
+
+  chapters.forEach(ch => {
+    // 下拉選單 option
+    const opt = document.createElement('option');
+    opt.value = ch.index;
+    opt.text = ch.isUnlocked ? 
+      `第 ${ch.index} 章：${ch.title}` : 
+      `第 ${ch.index} 章：${ch.title} 🔒 (${ch.publishDate || '即將解鎖'})`;
+    select.appendChild(opt);
+    
+    // TOC 卡片
+    const tocItem = document.createElement('div');
+    tocItem.className = 'novel-toc-item' + (ch.isUnlocked ? '' : ' locked');
+    tocItem.innerHTML = `
+      <div class="toc-item-title">第 ${ch.index} 章：${ch.title}</div>
+      <span class="toc-item-badge ${ch.isUnlocked ? 'toc-badge-unlocked' : 'toc-badge-locked'}">
+        ${ch.isUnlocked ? '閱讀' : ('🔒 ' + (ch.publishDate ? ch.publishDate.substring(5) : '鎖定'))}
+      </span>
+    `;
+    tocItem.onclick = () => loadChapter(ch.index);
+    tocList.appendChild(tocItem);
+  });
+}
+
+function showNovelOverview() {
+  document.getElementById('novel-overview-section').style.display = 'block';
+  document.getElementById('novel-reading-section').style.display = 'none';
+  document.getElementById('novel-chapter-select').value = "0";
+}
+
+function startReadingLatest() {
+  if (!currentNovel || !currentNovel.chapters || currentNovel.chapters.length === 0) return;
+  // 找到最後一個已解鎖的章節，或者第 1 章
+  const unlocked = currentNovel.chapters.filter(c => c.isUnlocked);
+  const target = unlocked.length > 0 ? unlocked[unlocked.length - 1] : currentNovel.chapters[0];
+  loadChapter(target.index);
+}
+
+function onChapterSelectChange(val) {
+  const idx = parseInt(val);
+  if (idx === 0) {
+    showNovelOverview();
+  } else {
+    loadChapter(idx);
+  }
+}
+
+function loadChapter(chapterIndex) {
+  if (!currentNovel || !currentNovel.chapters) return;
+  const chapter = currentNovel.chapters.find(c => c.index === chapterIndex);
+  if (!chapter) return;
+  
+  currentChapterIndex = chapterIndex;
+  document.getElementById('novel-chapter-select').value = String(chapterIndex);
+  
+  document.getElementById('novel-overview-section').style.display = 'none';
+  document.getElementById('novel-reading-section').style.display = 'block';
+  
+  // 滾動回頂部
+  document.getElementById('novel-modal').scrollTo({ top: 0, behavior: 'smooth' });
+  
+  document.getElementById('chapter-num').innerText = `CHAPTER // ${chapter.index}`;
+  document.getElementById('chapter-date').innerText = chapter.publishDate ? `發布日期：${chapter.publishDate}` : '';
+  document.getElementById('chapter-title').innerText = chapter.title;
+  
+  const contentBox = document.getElementById('chapter-content-box');
+  
+  if (chapter.isUnlocked) {
+    // 渲染段落
+    const paragraphs = (chapter.content || "").split(/\n+/).filter(p => p.trim() !== "");
+    if (paragraphs.length > 0) {
+      contentBox.innerHTML = paragraphs.map(p => `<p>${escapeHtml(p.trim())}</p>`).join('');
+    } else {
+      contentBox.innerHTML = '<p style="text-align:center; color: #888;">（本章暫無內文）</p>';
+    }
+  } else {
+    // 鎖定卡片
+    contentBox.innerHTML = `
+      <div class="chapter-locked-card">
+        <div class="locked-card-icon">🔒</div>
+        <div class="locked-card-title">本章連載中 · 尚未開放</div>
+        <div class="locked-card-date">預計解鎖日期：${chapter.publishDate || '即將上線'}</div>
+        <div class="locked-card-tip">
+          作者 Famidoc 正在全力以赴創作中！<br>
+          親友們歡迎在下方提前留言預測劇情或催更～
+        </div>
+      </div>
+    `;
+  }
+  
+  // 更新導覽按鍵 (上一章 / 下一章)
+  const prevBtn = document.getElementById('btn-prev-chapter');
+  const nextBtn = document.getElementById('btn-next-chapter');
+  
+  prevBtn.disabled = (chapterIndex <= 1);
+  nextBtn.disabled = (chapterIndex >= currentNovel.chapters.length);
+  
+  // 更新按讚按鈕
+  renderChapterLikeBtn(chapter);
+  
+  // 更新分享按鈕
+  const shareBtn = document.getElementById('chapter-share-btn');
+  shareBtn.innerHTML = shareIconSvg + 'SHARE CHAPTER';
+  
+  // 載入本章專屬留言
+  fetchChapterComments(chapter.id);
+  
+  // 背景更新章節點閱率
+  fetch(`${GAS_URL}?action=updateViewCount&resourceId=${chapter.id}`).catch(e => console.log(e));
+}
+
+function navigateChapter(delta) {
+  loadChapter(currentChapterIndex + delta);
+}
+
+function renderChapterLikeBtn(chapter) {
+  const likeBtn = document.getElementById('chapter-like-btn');
+  const isLiked = localStorage.getItem('liked_' + chapter.id) === 'true';
+  likeBtn.className = 'modal-like-btn' + (isLiked ? ' liked' : '');
+  likeBtn.innerHTML = heartModalSvg(isLiked) + ' LIKE (' + (chapter.likes || 0) + ')';
+}
+
+function handleChapterLike() {
+  if (!currentNovel || !currentNovel.chapters) return;
+  const chapter = currentNovel.chapters.find(c => c.index === currentChapterIndex);
+  if (!chapter) return;
+  if (localStorage.getItem('liked_' + chapter.id) === 'true') return;
+  
+  localStorage.setItem('liked_' + chapter.id, 'true');
+  chapter.likes = (chapter.likes || 0) + 1;
+  currentNovel.likes = (currentNovel.likes || 0) + 1;
+  
+  renderChapterLikeBtn(chapter);
+  document.getElementById('novel-overview-likes').innerHTML = `${heartFilledSvg} 按讚 ${currentNovel.likes}`;
+  fetch(`${GAS_URL}?action=addLike&resourceId=${chapter.id}`).catch(e => console.log(e));
+}
+
+function handleChapterShare() {
+  if (!currentNovel) return;
+  const shareBtn = document.getElementById('chapter-share-btn');
+  const fullUrl = `${appUrl}?id=${encodeURIComponent(currentNovel.id)}&ch=${currentChapterIndex}`;
+  copyToClipboardSafe(fullUrl).then(() => {
+    shareBtn.innerHTML = '✅ COPIED CHAPTER LINK!';
+    setTimeout(() => { shareBtn.innerHTML = shareIconSvg + 'SHARE CHAPTER'; }, 2000);
+  });
+}
+
+// 閱讀主題與字級控制
+function cycleReaderTheme() {
+  const themes = ['reader-theme-dark', 'reader-theme-sepia', 'reader-theme-light'];
+  const icons = { 'reader-theme-dark': '🌙', 'reader-theme-sepia': '📜', 'reader-theme-light': '☀️' };
+  let currentIdx = themes.indexOf(currentReaderTheme);
+  currentReaderTheme = themes[(currentIdx + 1) % themes.length];
+  
+  const contentBox = document.getElementById('chapter-content-box');
+  const section = document.getElementById('novel-reading-section');
+  
+  themes.forEach(t => {
+    contentBox.classList.remove(t);
+    section.classList.remove(t);
+  });
+  contentBox.classList.add(currentReaderTheme);
+  section.classList.add(currentReaderTheme);
+  
+  document.getElementById('reader-theme-btn').innerText = icons[currentReaderTheme];
+}
+
+function adjustFontSize(delta) {
+  currentReaderFontSize = Math.max(0.95, Math.min(1.6, currentReaderFontSize + delta * 0.1));
+  document.getElementById('chapter-content-box').style.setProperty('--novel-font-size', `${currentReaderFontSize}rem`);
+}
+
+function closeNovelModal(event) {
+  if (event.target === document.getElementById('novel-modal')) {
+    closeNovelModalDirect();
+  }
+}
+
+function closeNovelModalDirect() {
+  document.getElementById('novel-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+// 章節留言功能
+function fetchChapterComments(chapterId) {
+  const listEl = document.getElementById('chapter-comments-list');
+  listEl.innerHTML = '<div class="comments-status">讀取本章留言中...</div>';
+  safeFetchJson(`${GAS_URL}?action=getComments&resourceId=${chapterId}`, {}, 1, 1200)
+    .then(data => {
+      const comments = Array.isArray(data) ? data : (data.data || []);
+      renderChapterComments(comments);
+    })
+    .catch(() => {
+      listEl.innerHTML = '<div class="comments-status">暫無留言，歡迎搶頭香！</div>';
+    });
+}
+
+function renderChapterComments(comments) {
+  const listEl = document.getElementById('chapter-comments-list');
+  listEl.innerHTML = '';
+  if (!comments || comments.length === 0) {
+    listEl.innerHTML = '<div class="comments-status">目前尚無留言，歡迎發表您對本章的想法！</div>';
+    return;
+  }
+  comments.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'comment-card';
+    let adminReplyHtml = '';
+    if (c.adminReply && c.adminReply.trim() !== '') {
+      adminReplyHtml = `
+        <div class="admin-reply">
+          <div class="admin-reply-header">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            站長回覆 // FAMIDOC CHANG
+          </div>
+          <div class="admin-reply-body">${escapeHtml(c.adminReply)}</div>
+        </div>`;
+    }
+    div.innerHTML = `
+      <div class="comment-header">
+        <span class="comment-nick">${escapeHtml(c.nickname)}</span>
+        <span class="comment-time">${escapeHtml(c.timestamp)}</span>
+      </div>
+      <div class="comment-body">${escapeHtml(c.content)}</div>
+      ${adminReplyHtml}
+    `;
+    listEl.appendChild(div);
+  });
+}
+
+function submitChapterComment() {
+  if (!currentNovel || !currentNovel.chapters) return;
+  const chapter = currentNovel.chapters.find(c => c.index === currentChapterIndex);
+  if (!chapter) return;
+  
+  const nickInput = document.getElementById('chapter-comment-nick');
+  const contentInput = document.getElementById('chapter-comment-content');
+  const submitBtn = document.getElementById('chapter-comment-submit');
+  
+  const nick = nickInput.value.trim() || '匿名親友';
+  const content = contentInput.value.trim();
+  if (!content) { alert('請輸入留言內容！'); return; }
+  
+  submitBtn.disabled = true;
+  submitBtn.innerText = 'TRANSMITTING...';
+  
+  fetch(GAS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action: 'addComment', resourceId: chapter.id, nickname: nick, content: content })
+  }).then(() => {
+    contentInput.value = '';
+    submitBtn.disabled = false;
+    submitBtn.innerText = 'TRANSMIT / 傳送';
+    chapter.commentCount = (chapter.commentCount || 0) + 1;
+    setTimeout(() => fetchChapterComments(chapter.id), 1200);
+  }).catch(() => {
+    submitBtn.disabled = false;
+    submitBtn.innerText = 'TRANSMIT / 傳送';
+  });
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return String(text).replace(/[&<>"']/g, m => map[m]);
+}

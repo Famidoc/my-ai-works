@@ -291,3 +291,441 @@
   @keyframes shimmer {
     100% { transform: translateX(100%); }
   }
+
+  /* ==========================================
+     小說專屬樣式 (Novel Reader & Cards)
+     ========================================== */
+  .novel-card-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(11, 12, 16, 0.85);
+    border: 1px solid var(--neon-blue);
+    color: var(--neon-blue);
+    font-size: 0.75rem;
+    padding: 3px 8px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    font-weight: bold;
+    backdrop-filter: blur(4px);
+    z-index: 2;
+  }
+
+  .novel-modal-content {
+    width: 92%;
+    max-width: 920px;
+    background: #0d1117;
+    border: 1px solid var(--neon-blue);
+    box-shadow: 0 0 50px rgba(102, 252, 241, 0.25);
+    position: relative;
+    margin: 30px auto 80px auto;
+    border-radius: 8px;
+    overflow: hidden;
+    animation: zoomIn 0.3s ease;
+  }
+
+  /* 頂部閱讀工具列 */
+  .reader-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 14px 24px;
+    background: rgba(15, 23, 42, 0.95);
+    border-bottom: 1px solid rgba(102, 252, 241, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+    flex-wrap: wrap;
+  }
+  .reader-toolbar-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 180px;
+  }
+  .novel-tag-badge {
+    background: rgba(102, 252, 241, 0.15);
+    border: 1px solid var(--neon-blue);
+    color: var(--neon-blue);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  .novel-toolbar-title {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: bold;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 260px;
+  }
+  .reader-chapter-select {
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--neon-dark);
+    color: var(--neon-blue);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+    cursor: pointer;
+    min-width: 220px;
+    max-width: 320px;
+    transition: 0.2s;
+  }
+  .reader-chapter-select:focus {
+    border-color: var(--neon-blue);
+    box-shadow: 0 0 10px var(--neon-blue);
+  }
+  .reader-chapter-select option {
+    background: #0d1117;
+    color: #fff;
+  }
+  .reader-toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .reader-ctrl-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .reader-ctrl-btn:hover {
+    border-color: var(--neon-blue);
+    color: var(--neon-blue);
+    background: rgba(102, 252, 241, 0.1);
+  }
+
+  /* 書籍概覽與封面 */
+  .novel-overview-section {
+    padding: 35px 40px;
+    background: var(--card-bg);
+  }
+  .novel-overview-grid {
+    display: flex;
+    gap: 35px;
+    align-items: flex-start;
+    margin-bottom: 35px;
+  }
+  .novel-cover-wrap {
+    flex-shrink: 0;
+    width: 220px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--neon-dark);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+  }
+  .novel-cover-wrap img {
+    width: 100%;
+    height: auto;
+    display: block;
+    aspect-ratio: 3/4;
+    object-fit: cover;
+  }
+  .novel-info-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .novel-overview-title {
+    color: #fff;
+    font-size: 1.8rem;
+    margin: 0;
+    line-height: 1.3;
+  }
+  .novel-stats-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .novel-overview-desc {
+    color: #c5c6c7;
+    font-size: 1rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    margin: 10px 0;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 10px;
+  }
+  .novel-primary-btn {
+    align-self: flex-start;
+    background: var(--neon-dark);
+    color: #000;
+    border: 1px solid var(--neon-blue);
+    padding: 12px 28px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1rem;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    transition: 0.3s;
+    box-shadow: 0 0 15px rgba(69, 162, 158, 0.4);
+  }
+  .novel-primary-btn:hover {
+    background: var(--neon-blue);
+    box-shadow: 0 0 25px var(--neon-blue);
+    transform: translateY(-2px);
+  }
+
+  /* 目錄列表 (TOC) */
+  .novel-toc-container {
+    border-top: 1px dashed rgba(102, 252, 241, 0.3);
+    padding-top: 25px;
+  }
+  .novel-toc-heading {
+    color: var(--neon-blue);
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+  }
+  .novel-toc-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+  .novel-toc-item {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-color);
+    padding: 14px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.25s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .novel-toc-item:hover {
+    border-color: var(--neon-blue);
+    background: rgba(102, 252, 241, 0.08);
+    transform: translateX(4px);
+  }
+  .novel-toc-item.locked {
+    opacity: 0.6;
+    cursor: not-allowed;
+    border-style: dashed;
+  }
+  .novel-toc-item.locked:hover {
+    border-color: var(--sub-text);
+    background: rgba(0, 0, 0, 0.4);
+    transform: none;
+  }
+  .toc-item-title {
+    color: #e2e8f0;
+    font-weight: 500;
+    font-size: 0.95rem;
+  }
+  .toc-item-badge {
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  .toc-badge-unlocked {
+    color: var(--neon-blue);
+    background: rgba(102, 252, 241, 0.15);
+  }
+  .toc-badge-locked {
+    color: #ffb703;
+    background: rgba(255, 183, 3, 0.15);
+  }
+
+  /* 章節閱讀主區 */
+  .novel-reading-section {
+    padding: 40px 50px;
+    background: var(--reader-bg, #0f141c);
+    color: var(--reader-text, #cbd5e1);
+    transition: background 0.3s, color 0.3s;
+  }
+  .chapter-header {
+    text-align: center;
+    margin-bottom: 35px;
+    padding-bottom: 25px;
+    border-bottom: 1px solid var(--reader-border, rgba(255, 255, 255, 0.1));
+  }
+  .chapter-meta-line {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .chapter-num-badge {
+    color: var(--neon-blue);
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .chapter-date-badge {
+    color: #888;
+    font-size: 0.85rem;
+  }
+  .chapter-title {
+    font-size: 1.8rem;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  /* 內文排版 (長文舒適模式) */
+  .chapter-content-box {
+    font-family: 'Noto Serif TC', 'Songti TC', 'PMingLiU', serif;
+    font-size: var(--novel-font-size, 1.15rem);
+    line-height: 2.1;
+    letter-spacing: 0.03em;
+    max-width: 760px;
+    margin: 0 auto 40px auto;
+    word-break: break-word;
+  }
+  .chapter-content-box p {
+    text-indent: 2em;
+    margin: 0 0 1.5em 0;
+  }
+
+  /* 閱讀主題切換 */
+  .reader-theme-dark {
+    --reader-bg: #0e131b;
+    --reader-text: #e2e8f0;
+    --reader-border: rgba(102, 252, 241, 0.2);
+  }
+  .reader-theme-sepia {
+    --reader-bg: #f5eedb;
+    --reader-text: #3d2f23;
+    --reader-border: rgba(61, 47, 35, 0.15);
+  }
+  .reader-theme-sepia .chapter-title {
+    color: #2b1f17 !important;
+  }
+  .reader-theme-light {
+    --reader-bg: #ffffff;
+    --reader-text: #1a202c;
+    --reader-border: rgba(0, 0, 0, 0.1);
+  }
+  .reader-theme-light .chapter-title {
+    color: #111827 !important;
+  }
+
+  /* 未解鎖連載卡片 */
+  .chapter-locked-card {
+    text-align: center;
+    padding: 60px 30px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px dashed rgba(255, 183, 3, 0.6);
+    border-radius: 12px;
+    max-width: 550px;
+    margin: 40px auto;
+  }
+  .locked-card-icon {
+    font-size: 3.5rem;
+    margin-bottom: 15px;
+    animation: bounce 2s infinite;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .locked-card-title {
+    color: #ffb703;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+  }
+  .locked-card-date {
+    color: #fff;
+    font-size: 1.1rem;
+    margin-bottom: 12px;
+    font-weight: bold;
+  }
+  .locked-card-tip {
+    color: #aaa;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+
+  /* 章節導覽與按鍵 */
+  .chapter-nav-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    margin: 40px 0 30px 0;
+    padding: 20px 0;
+    border-top: 1px dashed var(--reader-border, rgba(255, 255, 255, 0.1));
+    border-bottom: 1px dashed var(--reader-border, rgba(255, 255, 255, 0.1));
+  }
+  .chapter-nav-btn {
+    padding: 10px 22px;
+    background: transparent;
+    border: 1px solid var(--neon-dark);
+    color: var(--neon-blue);
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: 0.25s;
+    letter-spacing: 1px;
+  }
+  .chapter-nav-btn:hover:not(:disabled) {
+    background: var(--neon-blue);
+    color: #000;
+    box-shadow: 0 0 15px var(--neon-blue);
+  }
+  .chapter-nav-btn:disabled {
+    border-color: #444;
+    color: #666;
+    cursor: not-allowed;
+  }
+  .toc-nav-btn {
+    border-color: var(--neon-yellow);
+    color: var(--neon-yellow);
+  }
+  .toc-nav-btn:hover:not(:disabled) {
+    background: var(--neon-yellow) !important;
+    color: #000 !important;
+    box-shadow: 0 0 15px var(--neon-yellow) !important;
+  }
+  .chapter-interact-bar {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 30px;
+  }
+
+  @media (max-width: 768px) {
+    .novel-overview-grid {
+      flex-direction: column;
+      align-items: center;
+    }
+    .novel-cover-wrap {
+      width: 180px;
+    }
+    .novel-reading-section {
+      padding: 25px 20px;
+    }
+    .reader-toolbar {
+      padding: 10px 15px;
+    }
+    .reader-toolbar-title-wrap {
+      width: 100%;
+    }
+    .reader-chapter-select {
+      width: 100%;
+      max-width: 100%;
+    }
+    .chapter-nav-btn {
+      padding: 8px 12px;
+      font-size: 0.85rem;
+    }
+  }

@@ -50,6 +50,7 @@
         <button class="tab-btn" onclick="switchTab('videos')">VIDEOS</button>
         <button class="tab-btn" onclick="switchTab('comics')">COMICS</button>
         <button class="tab-btn" onclick="switchTab('apps')">APPS</button>
+        <button class="tab-btn" onclick="switchTab('novels')">NOVELS</button>
       </div>
     </header>    
 
@@ -75,6 +76,7 @@
     <div id="gallery-videos" class="gallery-section"></div>
     <div id="gallery-comics" class="gallery-section"></div>
     <div id="gallery-apps" class="gallery-section"></div>
+    <div id="gallery-novels" class="gallery-section"></div>
 
     <div id="modal" class="modal-overlay" onclick="closeModal(event)">
       <div class="nav-btn prev" onclick="changeSlide(-1)">&#10094;</div>
@@ -98,6 +100,98 @@
               <button id="comment-submit" class="comment-submit-btn" onclick="submitComment()">TRANSMIT / 傳送</button>
             </div>
             <div id="comments-list" class="comments-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 專屬沉浸式小說閱讀彈窗 -->
+    <div id="novel-modal" class="modal-overlay" onclick="closeNovelModal(event)">
+      <div class="novel-modal-content" onclick="event.stopPropagation()">
+        <div class="close-btn" onclick="closeNovelModalDirect()">×</div>
+        
+        <!-- 閱讀器工具列 -->
+        <div class="reader-toolbar">
+          <div class="reader-toolbar-title-wrap">
+            <span class="novel-tag-badge">📖 NOVEL</span>
+            <span id="novel-toolbar-title" class="novel-toolbar-title"></span>
+          </div>
+          <div class="reader-toolbar-center">
+            <select id="novel-chapter-select" class="reader-chapter-select" onchange="onChapterSelectChange(this.value)">
+            </select>
+          </div>
+          <div class="reader-toolbar-actions">
+            <button class="reader-ctrl-btn" id="reader-theme-btn" onclick="cycleReaderTheme()" title="切換閱讀主題 (🌙深色 / 📜護眼 / ☀️淺色)">🌙</button>
+            <button class="reader-ctrl-btn" onclick="adjustFontSize(-1)" title="字體縮小">A-</button>
+            <button class="reader-ctrl-btn" onclick="adjustFontSize(1)" title="字體放大">A+</button>
+          </div>
+        </div>
+
+        <!-- 小說封面與大綱區（書籍概覽與完整目錄） -->
+        <div id="novel-overview-section" class="novel-overview-section">
+          <div class="novel-overview-grid">
+            <div class="novel-cover-wrap">
+              <img id="novel-cover-img" src="" alt="小說封面">
+            </div>
+            <div class="novel-info-wrap">
+              <span id="novel-overview-tag" class="tag">#連載小說</span>
+              <h2 id="novel-overview-title" class="novel-overview-title"></h2>
+              <div class="novel-stats-row">
+                <span id="novel-overview-views" class="view-count"></span>
+                <span id="novel-overview-likes" class="like-count"></span>
+                <span id="novel-overview-chapters-count" class="cmt-count"></span>
+              </div>
+              <p id="novel-overview-desc" class="novel-overview-desc"></p>
+              <div class="novel-action-buttons">
+                <button class="novel-primary-btn" onclick="startReadingLatest()">開始閱讀最新章節 ▶</button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="novel-toc-container">
+            <h3 class="novel-toc-heading">📑 章節目錄列表 (TABLE OF CONTENTS)</h3>
+            <div id="novel-toc-list" class="novel-toc-list"></div>
+          </div>
+        </div>
+
+        <!-- 章節內文閱讀主區 -->
+        <div id="novel-reading-section" class="novel-reading-section" style="display: none;">
+          <div class="chapter-header">
+            <div class="chapter-meta-line">
+              <span id="chapter-date" class="chapter-date-badge"></span>
+              <span id="chapter-num" class="chapter-num-badge"></span>
+            </div>
+            <h2 id="chapter-title" class="chapter-title"></h2>
+          </div>
+
+          <div id="chapter-content-box" class="chapter-content-box reader-theme-dark">
+          </div>
+
+          <!-- 章節底部切換列 -->
+          <div class="chapter-nav-row">
+            <button id="btn-prev-chapter" class="chapter-nav-btn" onclick="navigateChapter(-1)">◀ 上一章</button>
+            <button class="chapter-nav-btn toc-nav-btn" onclick="showNovelOverview()">📑 目錄簡介</button>
+            <button id="btn-next-chapter" class="chapter-nav-btn" onclick="navigateChapter(1)">下一章 ▶</button>
+          </div>
+
+          <!-- 章節按讚與分享 -->
+          <div class="chapter-interact-bar">
+            <button id="chapter-like-btn" class="modal-like-btn" onclick="handleChapterLike()"></button>
+            <button id="chapter-share-btn" class="share-btn" onclick="handleChapterShare()"></button>
+          </div>
+
+          <!-- 章節獨立留言區 -->
+          <div class="comments-section">
+            <div class="comments-title">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              CHAPTER TERMINAL // 本章訪客心得
+            </div>
+            <div class="comment-form">
+              <input type="text" id="chapter-comment-nick" class="comment-input" placeholder=">> NICKNAME (暱稱)" maxlength="30">
+              <textarea id="chapter-comment-content" class="comment-textarea" placeholder=">> 對本章節想說些什麼？" required></textarea>
+              <button id="chapter-comment-submit" class="comment-submit-btn" onclick="submitChapterComment()">TRANSMIT / 傳送</button>
+            </div>
+            <div id="chapter-comments-list" class="comments-list"></div>
           </div>
         </div>
       </div>
