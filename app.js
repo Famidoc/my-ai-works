@@ -590,8 +590,30 @@ function openNovelModal(item, targetChapterIndex = null) {
   let realId = item.id.includes('@') ? item.id.split('@')[0] : item.id;
   document.getElementById('novel-cover-img').src = `https://drive.google.com/thumbnail?id=${realId}&sz=${getModalImageSize()}`;
   document.getElementById('novel-overview-title').innerText = item.title;
-  document.getElementById('novel-overview-desc').innerText = item.desc || "暫無簡介";
   document.getElementById('novel-overview-tag').innerText = item.tag || '#連載小說';
+  
+  // 故事簡介與防劇透處理
+  const descText = item.desc || "暫無簡介";
+  const descEl = document.getElementById('novel-overview-desc');
+  const spoilerNotice = document.getElementById('novel-spoiler-notice');
+  const toggleBtn = document.getElementById('novel-desc-toggle-btn');
+  
+  descEl.innerText = descText;
+  descEl.classList.remove('expanded');
+  
+  // 若簡介超過 160 字或含有企劃、大綱、反轉、設定等關鍵字，自動顯示防雷警示並折疊
+  const isDetailedOrSpoiler = descText.length > 160 || /大綱|設定|反轉|劇透|企劃|Logline/i.test(descText);
+  if (isDetailedOrSpoiler) {
+    if (spoilerNotice) spoilerNotice.style.display = 'flex';
+    if (toggleBtn) {
+      toggleBtn.style.display = 'inline-flex';
+      toggleBtn.innerText = '展開完整設定大綱 ▾';
+    }
+  } else {
+    if (spoilerNotice) spoilerNotice.style.display = 'none';
+    if (toggleBtn) toggleBtn.style.display = 'none';
+    descEl.classList.add('expanded');
+  }
   
   document.getElementById('novel-overview-views').innerHTML = `${eyeIconSvg} 閱讀 ${item.viewCount || 0}`;
   document.getElementById('novel-overview-likes').innerHTML = `${heartFilledSvg} 按讚 ${item.likes || 0}`;
@@ -664,6 +686,16 @@ function populateChapterSelectAndTOC(chapters) {
     tocItem.onclick = () => loadChapter(ch.index);
     tocList.appendChild(tocItem);
   });
+}
+
+function toggleNovelDesc() {
+  const descEl = document.getElementById('novel-overview-desc');
+  const toggleBtn = document.getElementById('novel-desc-toggle-btn');
+  if (!descEl) return;
+  const isExpanded = descEl.classList.toggle('expanded');
+  if (toggleBtn) {
+    toggleBtn.innerText = isExpanded ? '收合大綱 ▴' : '展開完整設定大綱 ▾';
+  }
 }
 
 function showNovelOverview() {

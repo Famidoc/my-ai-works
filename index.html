@@ -141,7 +141,15 @@
                 <span id="novel-overview-likes" class="like-count"></span>
                 <span id="novel-overview-chapters-count" class="cmt-count"></span>
               </div>
-              <p id="novel-overview-desc" class="novel-overview-desc"></p>
+              <!-- 防劇透提醒條 -->
+              <div id="novel-spoiler-notice" class="novel-spoiler-notice" style="display: none;">
+                <span class="spoiler-icon">⚠️</span>
+                <span><strong>防雷提醒：</strong>簡介包含企劃大綱與背景設定，想保留驚喜請直接開始閱讀！</span>
+              </div>
+              <div class="novel-desc-container">
+                <p id="novel-overview-desc" class="novel-overview-desc"></p>
+                <button id="novel-desc-toggle-btn" class="novel-desc-toggle-btn" onclick="toggleNovelDesc()" style="display: none;">展開完整設定大綱 ▾</button>
+              </div>
               <div class="novel-action-buttons">
                 <button class="novel-primary-btn" onclick="startReadingLatest()">開始閱讀最新章節 ▶</button>
               </div>

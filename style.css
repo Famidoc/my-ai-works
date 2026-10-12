@@ -452,15 +452,55 @@
     gap: 10px;
     align-items: center;
   }
+  .novel-spoiler-notice {
+    background: rgba(246, 205, 97, 0.12);
+    border: 1px dashed var(--neon-yellow);
+    color: #f6cd61;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 0.88rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+    line-height: 1.4;
+  }
+  .novel-desc-container {
+    position: relative;
+    margin: 8px 0;
+  }
   .novel-overview-desc {
     color: #c5c6c7;
-    font-size: 1rem;
+    font-size: 0.95rem;
     line-height: 1.8;
     white-space: pre-wrap;
-    margin: 10px 0;
-    max-height: 250px;
-    overflow-y: auto;
+    margin: 0;
+    max-height: 120px;
+    overflow: hidden;
+    transition: max-height 0.4s ease;
     padding-right: 10px;
+  }
+  .novel-overview-desc.expanded {
+    max-height: 600px;
+    overflow-y: auto;
+  }
+  .novel-desc-toggle-btn {
+    background: transparent;
+    border: none;
+    color: var(--neon-blue);
+    font-family: inherit;
+    font-size: 0.88rem;
+    cursor: pointer;
+    padding: 6px 0;
+    font-weight: bold;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: 0.2s;
+  }
+  .novel-desc-toggle-btn:hover {
+    color: #fff;
+    text-shadow: 0 0 8px var(--neon-blue);
   }
   .novel-primary-btn {
     align-self: flex-start;
