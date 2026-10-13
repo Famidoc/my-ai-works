@@ -197,26 +197,55 @@ function showError(err) {
 // ==========================================
 // 4. 畫面渲染與 UI 邏輯
 // ==========================================
+let hasHandledDeepLink = false;
+let deepLinkTimer = null;
+
+function getTabNameFromType(typeStr) {
+  const t = (typeStr || '').toLowerCase();
+  if (t === 'novel') return 'novels';
+  if (t === 'apps') return 'apps';
+  if (t === 'video') return 'videos';
+  if (t === 'comic') return 'comics';
+  return 'images';
+}
+
 function initData(data) {
   document.getElementById('loader').style.display = 'none';
   allData = data;
-  setupObserver();     
-  if (requestedId && requestedId !== "") {
-    const targetItem = allData.find(x => String(x.id) === String(requestedId));
+  if (!observer) setupObserver();
+
+  if (requestedId && requestedId !== "" && !hasHandledDeepLink) {
+    // 支援完整匹配或忽略 @ 後綴匹配
+    const cleanReqId = String(requestedId).split('@')[0];
+    const targetItem = allData.find(x => String(x.id) === String(requestedId) || String(x.id).split('@')[0] === cleanReqId);
     if (targetItem) {
+      hasHandledDeepLink = true;
+      if (deepLinkTimer) clearTimeout(deepLinkTimer);
       const typeStr = targetItem.type.toLowerCase();
       if (typeStr === 'novel') {
         switchTab('novels');
         const chParam = urlParams.get('ch');
-        setTimeout(() => openNovelModal(targetItem, chParam ? parseInt(chParam) : null), 500);
+        deepLinkTimer = setTimeout(() => openNovelModal(targetItem, chParam ? parseInt(chParam, 10) : null), 300);
         return;
       }
-      switchTab(typeStr === 'apps' ? 'apps' : typeStr + 's');
-      setTimeout(() => openModal(targetItem), 500);
+      switchTab(getTabNameFromType(typeStr));
+      deepLinkTimer = setTimeout(() => openModal(targetItem), 300);
       return; 
     }
   }
-  switchTab('images'); 
+
+  // 若已經處理過深層連結或使用者正在瀏覽特定分頁，背景資料更新時維持當前分頁，不強制跳回 images
+  if (hasHandledDeepLink) {
+    updateGallery();
+    // 若小說視窗已開啟，同步更新最新資料引用（例如點閱數、解鎖狀態）
+    if (currentNovel) {
+      const updatedNovel = allData.find(x => String(x.id) === String(currentNovel.id));
+      if (updatedNovel) currentNovel = updatedNovel;
+    }
+    return;
+  }
+
+  switchTab(getTabNameFromType(currentType)); 
 }
 
 function setupObserver() {
@@ -310,19 +339,25 @@ function switchTab(tabName) {
 // 5. 燈箱 (Modal) 與互動功能
 // ==========================================
 function openModal(item) {
+  if (!item) return;
+  if (item.type && item.type.toLowerCase() === 'novel') {
+    const chParam = urlParams.get('ch');
+    openNovelModal(item, chParam ? parseInt(chParam, 10) : null);
+    return;
+  }
   currentIndex = currentList.findIndex(x => String(x.id) === String(item.id));
   item.viewCount = (item.viewCount || 0) + 1;
   
   // 背景更新點閱率
   fetch(`${GAS_URL}?action=updateViewCount&resourceId=${item.id}`).catch(e => console.log(e));
   
-  renderModalContent();
+  renderModalContent(item);
   document.getElementById('modal').style.display = 'block'; 
   document.body.style.overflow = 'hidden';
 }
 
-function renderModalContent() {
-  const item = currentList[currentIndex] || currentList[0];
+function renderModalContent(explicitItem = null) {
+  const item = (currentIndex >= 0 && currentList[currentIndex]) ? currentList[currentIndex] : (explicitItem || currentList[0]);
   if (!item) return;
   const container = document.getElementById('modal-media-container');
   const title = document.getElementById('modal-title');

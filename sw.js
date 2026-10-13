@@ -1,9 +1,10 @@
-// 定義快取名稱與版本號 (v2: 修正快取策略)
-const CACHE_NAME = 'ai-works-cache-v2';
+// 定義快取名稱與版本號 (v3: 支援小說深層連結與忽略網址參數匹配)
+const CACHE_NAME = 'ai-works-cache-v3';
 
 // 定義需要被快取的靜態檔案清單
 const urlsToCache = [
   './',
+  './index.html',
   './github-pages.html',
   './style.css',
   './app.js',
@@ -16,7 +17,7 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('快取已開啟 (v2)');
+        console.log('快取已開啟 (v3)');
         return cache.addAll(urlsToCache);
       })
   );
@@ -46,11 +47,10 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // 🔥 本站靜態資源 → Stale-While-Revalidate
-  // 先回傳快取（快），背景同時更新快取（新）
+  // 🔥 本站靜態資源 → Stale-While-Revalidate (忽略 query string 參數以確保 ?id=... 深層連結與版本參數正常匹配)
   event.respondWith(
     caches.open(CACHE_NAME).then(cache =>
-      cache.match(event.request).then(cachedResponse => {
+      cache.match(event.request, { ignoreSearch: true }).then(cachedResponse => {
         const fetchPromise = fetch(event.request).then(networkResponse => {
           // 只快取成功的回應
           if (networkResponse && networkResponse.status === 200) {
